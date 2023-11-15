@@ -14,13 +14,20 @@ const {crearUsuario, loginUsuario, revalidarToken} = require("../controllers/aut
 router.post(
     `/new`,
     [//middlewares
-    check('name','El nombre es obligatorio').not().isEmpty()
+    check('name','El nombre es obligatorio').not().isEmpty(),
+    check('email','El email es obligatorio').isEmail(),
+    check('password ', "El password debe de ser de 6 caracteres").isLength ({min:6}) 
 
 ], 
 crearUsuario);
 
 
-router.post(`/`, loginUsuario);
+router.post(`/`, 
+[//middlewares
+check('email', "El email es obligatorio").not().isEmpty(),
+check('password', "El password debe ser minimo de 6").isLength({min:6})
+],
+loginUsuario);
 
     
 
