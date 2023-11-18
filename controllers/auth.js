@@ -1,44 +1,87 @@
-const {response} = require('express');
+const { response } = require('express');
+const bcrypt = require("bcryptjs");
+const Usuario = require('../models/Usuario');
 
+const crearUsuario = async (req, res = response) => {
+  const { email, password } = req.body;
 
-const crearUsuario = (req, res = response)=>{
+  try {
+    let usuario = await Usuario.findOne({ email });
 
-    const {name, email, password}=req.body;
- 
+    if (usuario) {
+      return res.status(400).json({
+        ok: false,
+        msg: "El usuario ya existe"
+      });
+    }
+
+    usuario = new Usuario(req.body);
+
+    // Encriptar contraseña
+    const salt = bcrypt.genSaltSync();
+    usuario.password = bcrypt.hashSync(password, salt);
+
+    await usuario.save();
+
     res.status(201).json({
-    ok:true,
-    msg: 'Registro',
-    name,
-    email,
-    password
-    
+      ok: true,
+      uid: usuario.id,
+      name: usuario.name
     });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      ok: false,
+      msg: "Por favor hable con el administrador"
+    });
+  }
 }
-    
 
-const loginUsuario = (req, res = response)=>{
-    const {email, password}=req.body;
+const loginUsuario = async (req, res = response) => {
+  const { email, password } = req.body;
 
+  try {
+    const usuario = await Usuario.findOne({ email });
 
-res.status(202).json({
-    ok:true,
-    msg: "login",
-    email,
-    password
+    if (!usuario) {
+      return res.status(400).json({
+        ok: false,
+        msg: "El usuario o contraseña no es correcto"
+      });
+    }
 
-    })
-    };
+    // Confirmar los passwords
+    const validPassword = bcrypt.compareSync(password, usuario.password);
 
+    if (!validPassword) {
+      return res.status(400).json({
+        ok: false,
+        msg: "Contraseña incorrecta"
+      });
+    }
 
-const revalidarToken = (req, res = response)=>{
-
-    
+    // Generar nuestro Json WebToken
     res.json({
-    ok:true,
+      ok: true,
+      uid: usuario.id,
+      name: usuario.name
+    });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      ok: false,
+      msg: "Por favor hable con el administrador"
+    });
+  }
+}
+
+const revalidarToken = (req, res = response) => {
+  res.json({
+    ok: true,
     msg: "renew"
-    })
-    };
+  });
+};
 
-
-module.exports = {crearUsuario,
-loginUsuario, revalidarToken}
+module.exports = { crearUsuario, loginUsuario, revalidarToken };
